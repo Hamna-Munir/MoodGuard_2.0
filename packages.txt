@@ -1,6 +1,3 @@
 libgl1
-libglib2.0-0
-pkg-config
-ffmpeg
 libsm6
 libxext6
