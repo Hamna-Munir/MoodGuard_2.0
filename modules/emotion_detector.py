@@ -1,9 +1,11 @@
 import numpy as np
 import cv2
+import onnxruntime as ort
 
-# TF-Keras se load karo — no onnx needed
-import tf_keras as keras
-model = keras.models.load_model("moodguard_model.h5")
+# ONNX model load karo
+session     = ort.InferenceSession("moodguard_model.onnx")
+input_name  = session.get_inputs()[0].name
+output_name = session.get_outputs()[0].name
 
 EMOTIONS = ["Angry", "Disgust", "Fear", "Happy", "Neutral", "Sad", "Surprise"]
 
@@ -26,7 +28,7 @@ def detect_emotion(frame):
     face_roi   = np.expand_dims(face_roi, axis=-1)
     face_roi   = np.expand_dims(face_roi, axis=0)
 
-    preds        = model.predict(face_roi, verbose=0)[0]
+    preds        = session.run([output_name], {input_name: face_roi})[0][0]
     dominant_idx = int(np.argmax(preds))
     confidence   = float(round(preds[dominant_idx] * 100, 2))
     all_scores   = {EMOTIONS[i]: round(float(preds[i]) * 100, 1)
