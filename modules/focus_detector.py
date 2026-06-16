@@ -1,10 +1,19 @@
 import pickle
 import numpy as np
 import cv2
+import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 
 # Load RandomForest model
 with open("focus_model.pkl", "rb") as f:
     focus_model = pickle.load(f)
+
+# New MediaPipe API
+BaseOptions = mp.tasks.BaseOptions
+FaceLandmarker = vision.FaceLandmarker
+FaceLandmarkerOptions = vision.FaceLandmarkerOptions
+VisionRunningMode = vision.RunningMode
 
 LEFT_EYE  = [33, 160, 158, 133, 153, 144]
 RIGHT_EYE = [362, 385, 387, 263, 373, 380]
@@ -18,10 +27,9 @@ def _ear(landmarks, indices, w, h):
 
 class FocusDetector:
     def __init__(self):
-        # Import here to avoid module-level conflict
-        import mediapipe as mp
-        self._mp = mp
-        self.mesh = mp.solutions.face_mesh.FaceMesh(
+        # Use old solutions API with compatibility mode
+        self.mp_face_mesh = mp.solutions.face_mesh
+        self.mesh = self.mp_face_mesh.FaceMesh(
             max_num_faces=1,
             refine_landmarks=True,
             min_detection_confidence=0.5,
@@ -33,12 +41,7 @@ class FocusDetector:
     def detect(self, frame):
         h, w = frame.shape[:2]
         rgb  = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        try:
-            res = self.mesh.process(rgb)
-        except Exception:
-            return {"focus_score": 50, "state": "Moderate",
-                    "prediction": 1, "blinks": self.blink_count}
+        res  = self.mesh.process(rgb)
 
         if not res.multi_face_landmarks:
             return {"focus_score": 0, "state": "No face",
@@ -50,8 +53,8 @@ class FocusDetector:
         avg_ear   = (left_ear + right_ear) / 2.0
 
         lw = np.linalg.norm(
-            np.array([lm[LEFT_EYE[0]].x*w,  lm[LEFT_EYE[0]].y*h]) -
-            np.array([lm[LEFT_EYE[3]].x*w,  lm[LEFT_EYE[3]].y*h]))
+            np.array([lm[LEFT_EYE[0]].x*w, lm[LEFT_EYE[0]].y*h]) -
+            np.array([lm[LEFT_EYE[3]].x*w, lm[LEFT_EYE[3]].y*h]))
         rw = np.linalg.norm(
             np.array([lm[RIGHT_EYE[0]].x*w, lm[RIGHT_EYE[0]].y*h]) -
             np.array([lm[RIGHT_EYE[3]].x*w, lm[RIGHT_EYE[3]].y*h]))
@@ -65,15 +68,10 @@ class FocusDetector:
             self.blink_count += 1
         self._prev_ear = avg_ear
 
-        try:
-            prediction  = int(focus_model.predict(features)[0])
-            proba       = focus_model.predict_proba(features)[0]
-            focus_score = int(proba[1] * 100)
-        except Exception:
-            prediction  = 1
-            focus_score = 50
-
-        state = "Focused" if prediction == 1 else "Distracted"
+        prediction  = int(focus_model.predict(features)[0])
+        proba       = focus_model.predict_proba(features)[0]
+        focus_score = int(proba[1] * 100)
+        state       = "Focused" if prediction == 1 else "Distracted"
 
         return {
             "focus_score": focus_score,
