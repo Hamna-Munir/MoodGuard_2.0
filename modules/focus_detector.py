@@ -2,12 +2,19 @@ import pickle
 import numpy as np
 import cv2
 import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 
-# Tumhara RandomForest model load karo
+# Load RandomForest model
 with open("focus_model.pkl", "rb") as f:
     focus_model = pickle.load(f)
 
-mp_face_mesh  = mp.solutions.face_mesh
+# New MediaPipe API
+BaseOptions = mp.tasks.BaseOptions
+FaceLandmarker = vision.FaceLandmarker
+FaceLandmarkerOptions = vision.FaceLandmarkerOptions
+VisionRunningMode = vision.RunningMode
+
 LEFT_EYE  = [33, 160, 158, 133, 153, 144]
 RIGHT_EYE = [362, 385, 387, 263, 373, 380]
 
@@ -20,7 +27,9 @@ def _ear(landmarks, indices, w, h):
 
 class FocusDetector:
     def __init__(self):
-        self.mesh = mp_face_mesh.FaceMesh(
+        # Use old solutions API with compatibility mode
+        self.mp_face_mesh = mp.solutions.face_mesh
+        self.mesh = self.mp_face_mesh.FaceMesh(
             max_num_faces=1,
             refine_landmarks=True,
             min_detection_confidence=0.5,
@@ -35,19 +44,23 @@ class FocusDetector:
         res  = self.mesh.process(rgb)
 
         if not res.multi_face_landmarks:
-            return {"focus_score": 0, "state": "No face", "prediction": 0, "blinks": self.blink_count}
+            return {"focus_score": 0, "state": "No face",
+                    "prediction": 0, "blinks": self.blink_count}
 
         lm        = res.multi_face_landmarks[0].landmark
         left_ear  = _ear(lm, LEFT_EYE,  w, h)
         right_ear = _ear(lm, RIGHT_EYE, w, h)
         avg_ear   = (left_ear + right_ear) / 2.0
 
-        lw = np.linalg.norm(np.array([lm[LEFT_EYE[0]].x  * w, lm[LEFT_EYE[0]].y  * h]) -
-                            np.array([lm[LEFT_EYE[3]].x  * w, lm[LEFT_EYE[3]].y  * h]))
-        rw = np.linalg.norm(np.array([lm[RIGHT_EYE[0]].x * w, lm[RIGHT_EYE[0]].y * h]) -
-                            np.array([lm[RIGHT_EYE[3]].x * w, lm[RIGHT_EYE[3]].y * h]))
-        ed = np.linalg.norm(np.array([lm[33].x  * w, lm[33].y  * h]) -
-                            np.array([lm[362].x * w, lm[362].y * h]))
+        lw = np.linalg.norm(
+            np.array([lm[LEFT_EYE[0]].x*w, lm[LEFT_EYE[0]].y*h]) -
+            np.array([lm[LEFT_EYE[3]].x*w, lm[LEFT_EYE[3]].y*h]))
+        rw = np.linalg.norm(
+            np.array([lm[RIGHT_EYE[0]].x*w, lm[RIGHT_EYE[0]].y*h]) -
+            np.array([lm[RIGHT_EYE[3]].x*w, lm[RIGHT_EYE[3]].y*h]))
+        ed = np.linalg.norm(
+            np.array([lm[33].x*w,  lm[33].y*h]) -
+            np.array([lm[362].x*w, lm[362].y*h]))
 
         features = np.array([[left_ear, right_ear, avg_ear, lw, rw, ed]])
 
