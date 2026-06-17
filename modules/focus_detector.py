@@ -16,17 +16,18 @@ def _ear(landmarks, indices, w, h):
     hz  = np.linalg.norm(np.array(pts[0]) - np.array(pts[3]))
     return (v1 + v2) / (2.0 * hz + 1e-6)
 
+# Initialize MediaPipe FaceMesh at module level
+import mediapipe as mp
+_mp_face_mesh = mp.solutions.face_mesh
+_mesh = _mp_face_mesh.FaceMesh(
+    max_num_faces=1,
+    refine_landmarks=True,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5
+)
+
 class FocusDetector:
     def __init__(self):
-        # Import here to avoid module-level conflict
-        import mediapipe as mp
-        self._mp = mp
-        self.mesh = mp.solutions.face_mesh.FaceMesh(
-            max_num_faces=1,
-            refine_landmarks=True,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        )
         self.blink_count = 0
         self._prev_ear   = 0.3
 
@@ -35,7 +36,7 @@ class FocusDetector:
         rgb  = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         try:
-            res = self.mesh.process(rgb)
+            res = _mesh.process(rgb)
         except Exception:
             return {"focus_score": 50, "state": "Moderate",
                     "prediction": 1, "blinks": self.blink_count}
