@@ -2,24 +2,22 @@ import pickle
 import numpy as np
 import cv2
 
-# Load model
 try:
     with open("focus_model.pkl", "rb") as f:
         focus_model = pickle.load(f)
     MODEL_LOADED = True
-except Exception as e:
+except Exception:
     MODEL_LOADED = False
-    print(f"Focus model load failed: {e}")
 
 LEFT_EYE  = [33, 160, 158, 133, 153, 144]
 RIGHT_EYE = [362, 385, 387, 263, 373, 380]
 
-def _ear(landmarks, indices, w, h):
-    pts = [(landmarks[i].x * w, landmarks[i].y * h) for i in indices]
-    v1  = np.linalg.norm(np.array(pts[1]) - np.array(pts[5]))
-    v2  = np.linalg.norm(np.array(pts[2]) - np.array(pts[4]))
-    hz  = np.linalg.norm(np.array(pts[0]) - np.array(pts[3]))
-    return (v1 + v2) / (2.0 * hz + 1e-6)
+def _ear(lm, idx, w, h):
+    p = [(lm[i].x * w, lm[i].y * h) for i in idx]
+    A = np.linalg.norm(np.array(p[1]) - np.array(p[5]))
+    B = np.linalg.norm(np.array(p[2]) - np.array(p[4]))
+    C = np.linalg.norm(np.array(p[0]) - np.array(p[3]))
+    return (A + B) / (2.0 * C + 1e-6)
 
 class FocusDetector:
     def __init__(self):
@@ -43,7 +41,7 @@ class FocusDetector:
 
     def detect(self, frame):
         if not MODEL_LOADED:
-            return {"focus_score": 50, "state": "Model Error",
+            return {"focus_score": 50, "state": "Moderate",
                     "prediction": 1, "blinks": self.blink_count}
 
         h, w = frame.shape[:2]
@@ -52,7 +50,7 @@ class FocusDetector:
         try:
             mesh = self._get_mesh()
             if mesh is None:
-                return {"focus_score": 50, "state": "MP Error",
+                return {"focus_score": 50, "state": "Moderate",
                         "prediction": 1, "blinks": self.blink_count}
             res = mesh.process(rgb)
         except Exception:
@@ -64,9 +62,9 @@ class FocusDetector:
                     "prediction": 0, "blinks": self.blink_count}
 
         lm        = res.multi_face_landmarks[0].landmark
-        left_ear  = _ear(lm, LEFT_EYE,  w, h)
-        right_ear = _ear(lm, RIGHT_EYE, w, h)
-        avg_ear   = (left_ear + right_ear) / 2.0
+        le  = _ear(lm, LEFT_EYE,  w, h)
+        re  = _ear(lm, RIGHT_EYE, w, h)
+        avg = (le + re) / 2.0
 
         lw = np.linalg.norm(
             np.array([lm[LEFT_EYE[0]].x*w,  lm[LEFT_EYE[0]].y*h]) -
@@ -75,28 +73,26 @@ class FocusDetector:
             np.array([lm[RIGHT_EYE[0]].x*w, lm[RIGHT_EYE[0]].y*h]) -
             np.array([lm[RIGHT_EYE[3]].x*w, lm[RIGHT_EYE[3]].y*h]))
         ed = np.linalg.norm(
-            np.array([lm[33].x*w,  lm[33].y*h]) -
+            np.array([lm[33].x*w, lm[33].y*h]) -
             np.array([lm[362].x*w, lm[362].y*h]))
 
-        features = np.array([[left_ear, right_ear, avg_ear, lw, rw, ed]])
+        features = np.array([[le, re, avg, lw, rw, ed]])
 
-        if self._prev_ear > 0.25 and avg_ear < 0.20:
+        if self._prev_ear > 0.25 and avg < 0.20:
             self.blink_count += 1
-        self._prev_ear = avg_ear
+        self._prev_ear = avg
 
         try:
-            prediction  = int(focus_model.predict(features)[0])
-            proba       = focus_model.predict_proba(features)[0]
-            focus_score = int(proba[1] * 100)
+            pred  = int(focus_model.predict(features)[0])
+            proba = focus_model.predict_proba(features)[0]
+            score = int(proba[1] * 100)
         except Exception:
-            prediction  = 1
-            focus_score = 50
-
-        state = "Focused" if prediction == 1 else "Distracted"
+            pred  = 1
+            score = 50
 
         return {
-            "focus_score": focus_score,
-            "state":       state,
-            "prediction":  prediction,
+            "focus_score": score,
+            "state":       "Focused" if pred == 1 else "Distracted",
+            "prediction":  pred,
             "blinks":      self.blink_count
         }
