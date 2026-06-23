@@ -405,42 +405,62 @@ RTC_CONFIG = RTCConfiguration({
 # Video Processor
 class MoodGuardProcessor(VideoProcessorBase):
     def __init__(self):
-        self.fd     = FocusDetector()
         self.emotion      = "Neutral"
         self.confidence   = 0.0
-        self.focus_score  = 0
-        self.focus_state  = "—"
+        self.focus_score  = 50
+        self.focus_state  = "Moderate"
         self.state_label  = "Waiting..."
         self.all_scores   = {}
         self.blinks       = 0
         self.alert        = False
         self.tip          = ""
+        self._fd          = None
+
+    def _get_fd(self):
+        if self._fd is None:
+            try:
+                self._fd = FocusDetector()
+            except Exception:
+                pass
+        return self._fd
 
     def recv(self, frame):
-        img   = frame.to_ndarray(format="bgr24")
-        emo   = detect_emotion(img)
-        focus = self.fd.detect(img)
-        state = analyze(emo["emotion"], focus["focus_score"])
+        img = frame.to_ndarray(format="bgr24")
 
-        # Save results
-        self.emotion     = emo["emotion"]
-        self.confidence  = emo["confidence"]
-        self.focus_score = focus["focus_score"]
-        self.focus_state = focus["state"]
-        self.state_label = state["state"]
-        self.all_scores  = emo.get("all_scores", {})
-        self.blinks      = focus["blinks"]
-        self.alert       = state["alert"]
-        self.tip         = state["tip"]
+        try:
+            emo = detect_emotion(img)
+            self.emotion    = emo["emotion"]
+            self.confidence = emo["confidence"]
+            self.all_scores = emo.get("all_scores", {})
+        except Exception:
+            pass
 
-        # Draw on frame
-        if emo["face_box"]:
-            x,y,w,h = emo["face_box"]
-            cv2.rectangle(img,(x,y),(x+w,y+h),(14,165,233),2)
-            cv2.putText(img,f"{emo['emotion']} {emo['confidence']:.0f}%",
-                       (x,y-10),cv2.FONT_HERSHEY_SIMPLEX,0.7,(14,165,233),2)
-            cv2.putText(img,f"Focus:{focus['focus_score']} {focus['state']}",
-                       (x,y+h+22),cv2.FONT_HERSHEY_SIMPLEX,0.6,(5,150,105),2)
+        try:
+            fd = self._get_fd()
+            if fd:
+                focus = fd.detect(img)
+                self.focus_score = focus["focus_score"]
+                self.focus_state = focus["state"]
+                self.blinks      = focus["blinks"]
+        except Exception:
+            pass
+
+        try:
+            state = analyze(self.emotion, self.focus_score)
+            self.state_label = state["state"]
+            self.alert       = state["alert"]
+            self.tip         = state["tip"]
+        except Exception:
+            pass
+
+        try:
+            if emo.get("face_box"):
+                x,y,w,h = emo["face_box"]
+                cv2.rectangle(img,(x,y),(x+w,y+h),(14,165,233),2)
+                cv2.putText(img,f"{self.emotion} {self.confidence:.0f}%",
+                           (x,y-10),cv2.FONT_HERSHEY_SIMPLEX,0.6,(14,165,233),2)
+        except Exception:
+            pass
 
         return av.VideoFrame.from_ndarray(img, format="bgr24")
 
@@ -759,7 +779,7 @@ if page == "🧠  Dashboard":
         last_log = time.time()
 
         if not cap.isOpened():
-            st.error("❌ Webcam nahi mila.")
+            st.error("❌ Webcam not found. ")
             st.session_state.camera_on = False
         else:
             while st.session_state.camera_on:
