@@ -2,8 +2,14 @@ import pickle
 import numpy as np
 import cv2
 
-with open("focus_model.pkl", "rb") as f:
-    focus_model = pickle.load(f)
+# Load model
+try:
+    with open("focus_model.pkl", "rb") as f:
+        focus_model = pickle.load(f)
+    MODEL_LOADED = True
+except Exception as e:
+    MODEL_LOADED = False
+    print(f"Focus model load failed: {e}")
 
 LEFT_EYE  = [33, 160, 158, 133, 153, 144]
 RIGHT_EYE = [362, 385, 387, 263, 373, 380]
@@ -19,26 +25,36 @@ class FocusDetector:
     def __init__(self):
         self.blink_count = 0
         self._prev_ear   = 0.3
-        self._mesh       = None
+        self._mesh_obj   = None
 
     def _get_mesh(self):
-        if self._mesh is None:
-            import mediapipe as mp
-            self._mesh = mp.solutions.face_mesh.FaceMesh(
-                max_num_faces=1,
-                refine_landmarks=True,
-                min_detection_confidence=0.5,
-                min_tracking_confidence=0.5
-            )
-        return self._mesh
+        if self._mesh_obj is None:
+            try:
+                import mediapipe as mp
+                self._mesh_obj = mp.solutions.face_mesh.FaceMesh(
+                    max_num_faces=1,
+                    refine_landmarks=True,
+                    min_detection_confidence=0.5,
+                    min_tracking_confidence=0.5
+                )
+            except Exception:
+                self._mesh_obj = None
+        return self._mesh_obj
 
     def detect(self, frame):
+        if not MODEL_LOADED:
+            return {"focus_score": 50, "state": "Model Error",
+                    "prediction": 1, "blinks": self.blink_count}
+
         h, w = frame.shape[:2]
         rgb  = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         try:
             mesh = self._get_mesh()
-            res  = mesh.process(rgb)
+            if mesh is None:
+                return {"focus_score": 50, "state": "MP Error",
+                        "prediction": 1, "blinks": self.blink_count}
+            res = mesh.process(rgb)
         except Exception:
             return {"focus_score": 50, "state": "Moderate",
                     "prediction": 1, "blinks": self.blink_count}
