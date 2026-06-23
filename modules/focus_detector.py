@@ -1,9 +1,7 @@
 import pickle
 import numpy as np
 import cv2
-import mediapipe as mp
 
-# Load model
 with open("focus_model.pkl", "rb") as f:
     focus_model = pickle.load(f)
 
@@ -19,21 +17,28 @@ def _ear(landmarks, indices, w, h):
 
 class FocusDetector:
     def __init__(self):
-        self.face_mesh = mp.solutions.face_mesh.FaceMesh(
-            max_num_faces=1,
-            refine_landmarks=True,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        )
         self.blink_count = 0
         self._prev_ear   = 0.3
+        self._mesh       = None
+
+    def _get_mesh(self):
+        if self._mesh is None:
+            import mediapipe as mp
+            self._mesh = mp.solutions.face_mesh.FaceMesh(
+                max_num_faces=1,
+                refine_landmarks=True,
+                min_detection_confidence=0.5,
+                min_tracking_confidence=0.5
+            )
+        return self._mesh
 
     def detect(self, frame):
         h, w = frame.shape[:2]
         rgb  = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         try:
-            res = self.face_mesh.process(rgb)
+            mesh = self._get_mesh()
+            res  = mesh.process(rgb)
         except Exception:
             return {"focus_score": 50, "state": "Moderate",
                     "prediction": 1, "blinks": self.blink_count}
