@@ -1,3 +1,4 @@
 libgl1
 libsm6
 libxext6
+libglib2.0-0
