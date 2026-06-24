@@ -138,8 +138,19 @@ html, body, [class*="css"], * { font-family: 'Inter', sans-serif !important; }
 h1 { color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important; }
 h2 { color: #0f172a !important; font-size: 20px !important; font-weight: 700 !important; }
 h3 { color: #1e293b !important; font-size: 17px !important; font-weight: 600 !important; }
+/* Main content text — dark */
 .main p { color: #334155 !important; }
 .main label { color: #334155 !important; }
+
+/* Plotly chart text — force dark */
+.js-plotly-plot text { fill: #1e293b !important; }
+.js-plotly-plot .gtitle { fill: #0f172a !important; }
+.js-plotly-plot .xtick text { fill: #334155 !important; }
+.js-plotly-plot .ytick text { fill: #334155 !important; }
+.js-plotly-plot .legendtext { fill: #334155 !important; }
+.js-plotly-plot .g-gtitle text { fill: #0f172a !important; }
+.js-plotly-plot .xaxislayer-above text { fill: #334155 !important; }
+.js-plotly-plot .yaxislayer-above text { fill: #334155 !important; }
 
 [style*="0c4a6e"] { color: white !important; }
 [style*="0369a1"] { color: white !important; }
