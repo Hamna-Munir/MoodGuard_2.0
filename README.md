@@ -37,7 +37,6 @@
 
 **MoodGuard 2.0** is a 7-module AI Mental State Intelligence System built with Python and Streamlit. It detects human emotions in real-time using a Convolutional Neural Network (CNN), tracks attention levels using eye landmark analysis, generates behavioral insights through a rule-based agent, and delivers personalized productivity advice using Google Gemini 1.5 Flash.
 
-> Built as a university AI/ML project under the supervision of **Sir Nadeem**.
 
 ---
 
