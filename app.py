@@ -4,8 +4,6 @@ import pandas as pd
 import plotly.express as px
 from PIL import Image
 import numpy as np
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
-import av
 
 from modules.emotion_detector import detect_emotion
 from modules.focus_detector   import FocusDetector
@@ -31,28 +29,11 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 html, body, [class*="css"], * { font-family: 'Inter', sans-serif !important; }
 
-/* BG — soft blue-gray */
 .stApp { background: #f0f4f8 !important; }
-/* 3D Card Shadow */
-div[data-testid="stVerticalBlock"] > div > div > div[style*="border-radius"] {
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.07),
-                0 10px 15px -3px rgba(0,0,0,0.07),
-                0 20px 25px -5px rgba(0,0,0,0.04) !important;
-    transform: translateY(0);
-    transition: transform 0.2s ease, box-shadow 0.2s ease !important;
-}
-div[data-testid="stVerticalBlock"] > div > div > div[style*="border-radius"]:hover {
-    box-shadow: 0 8px 12px -2px rgba(0,0,0,0.1),
-                0 20px 30px -5px rgba(0,0,0,0.1),
-                0 30px 40px -8px rgba(0,0,0,0.06) !important;
-    transform: translateY(-3px) !important;
-}
 [data-testid="stAppViewContainer"] { background: #f0f4f8 !important; }
 [data-testid="stHeader"] { background: #ffffff !important; border-bottom: 1px solid #e2e8f0 !important; box-shadow: 0 1px 3px rgba(0,0,0,0.06) !important; }
 .main .block-container { padding-top: 28px !important; max-width: 1400px; }
 
-/* ── PREMIUM SIDEBAR ── */
-/* SIDEBAR */
 [data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0a0f1e 0%, #0f172a 60%, #0a0f1e 100%) !important;
     border-right: 1px solid rgba(56,189,248,0.1) !important;
@@ -60,325 +41,112 @@ div[data-testid="stVerticalBlock"] > div > div > div[style*="border-radius"]:hov
 }
 [data-testid="stSidebar"] * { color: #e2e8f0 !important; }
 
-
-/* Radio as nav items */
 [data-testid="stSidebar"] .stRadio > div {
-    display: flex !important;
-    flex-direction: column !important;
-    gap: 4px !important;
-    padding: 0 10px !important;
+    display: flex !important; flex-direction: column !important;
+    gap: 4px !important; padding: 0 10px !important;
 }
-
-/* Hide the radio circle */
 [data-testid="stSidebar"] .stRadio input[type="radio"] {
-    width: 0 !important;
-    height: 0 !important;
-    opacity: 0 !important;
-    position: absolute !important;
+    width: 0 !important; height: 0 !important; opacity: 0 !important; position: absolute !important;
 }
-
-/* Each nav item label */
 [data-testid="stSidebar"] .stRadio label {
-    display: flex !important;
-    align-items: center !important;
-    padding: 11px 16px !important;
-    border-radius: 12px !important;
-    cursor: pointer !important;
-    border: 1px solid transparent !important;
-    color: #94a3b8 !important;
-    font-size: 14px !important;
-    font-weight: 500 !important;
-    margin: 0 !important;
-    transition: all 0.2s ease !important;
-    position: relative !important;
-    overflow: hidden !important;
+    display: flex !important; align-items: center !important;
+    padding: 11px 16px !important; border-radius: 12px !important; cursor: pointer !important;
+    border: 1px solid transparent !important; color: #94a3b8 !important;
+    font-size: 14px !important; font-weight: 500 !important; margin: 0 !important;
+    transition: all 0.2s ease !important; position: relative !important; overflow: hidden !important;
 }
-
-/* Hover effect */
 [data-testid="stSidebar"] .stRadio label:hover {
-    background: rgba(255,255,255,0.06) !important;
-    color: #e2e8f0 !important;
-    border-color: rgba(255,255,255,0.08) !important;
-    transform: translateX(4px) !important;
+    background: rgba(255,255,255,0.06) !important; color: #e2e8f0 !important;
+    border-color: rgba(255,255,255,0.08) !important; transform: translateX(4px) !important;
 }
-
-/* Active/selected item */
 [data-testid="stSidebar"] [aria-checked="true"] + label {
     background: linear-gradient(135deg,rgba(14,165,233,0.2),rgba(56,189,248,0.1)) !important;
-    border-color: rgba(56,189,248,0.4) !important;
-    color: #ffffff !important;
+    border-color: rgba(56,189,248,0.4) !important; color: #ffffff !important;
     font-weight: 700 !important;
-    box-shadow: 
-        0 4px 16px rgba(14,165,233,0.2),
-        inset 0 1px 0 rgba(255,255,255,0.1) !important;
+    box-shadow: 0 4px 16px rgba(14,165,233,0.2), inset 0 1px 0 rgba(255,255,255,0.1) !important;
     transform: translateX(0) !important;
 }
-
-/* Active left border glow */
 [data-testid="stSidebar"] [aria-checked="true"] + label::before {
-    content: '' !important;
-    position: absolute !important;
-    left: 0 !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    width: 3px !important;
-    height: 60% !important;
-    background: linear-gradient(180deg, #38bdf8, #0ea5e9) !important;
-    border-radius: 0 3px 3px 0 !important;
-    box-shadow: 0 0 8px rgba(56,189,248,0.6) !important;
+    content: '' !important; position: absolute !important; left: 0 !important;
+    top: 50% !important; transform: translateY(-50%) !important; width: 3px !important;
+    height: 60% !important; background: linear-gradient(180deg, #38bdf8, #0ea5e9) !important;
+    border-radius: 0 3px 3px 0 !important; box-shadow: 0 0 8px rgba(56,189,248,0.6) !important;
 }
+[data-testid="stSidebar"] .stRadio label > div:first-child { display: none !important; }
+[data-testid="stSidebar"] .stRadio > label { display: none !important; }
 
-/* Hide small circle/dot that appears */
-[data-testid="stSidebar"] .stRadio label > div:first-child {
-    display: none !important;
-}
-
-/* Hide label text that says "label" */
-[data-testid="stSidebar"] .stRadio > label {
-    display: none !important;
-}
-
-/* ── 3D CARDS ── */
 @keyframes card-float {
-    0%, 100% {
-        transform: translateY(0px);
-        box-shadow:
-            0 4px 6px rgba(0,0,0,0.05),
-            0 10px 20px rgba(0,0,0,0.08),
-            0 20px 40px rgba(0,0,0,0.04),
-            inset 0 1px 0 rgba(255,255,255,0.9);
-    }
-    50% {
-        transform: translateY(-2px);
-        box-shadow:
-            0 8px 12px rgba(0,0,0,0.07),
-            0 16px 32px rgba(0,0,0,0.1),
-            0 32px 64px rgba(0,0,0,0.05),
-            inset 0 1px 0 rgba(255,255,255,0.9);
-    }
+    0%, 100% { transform: translateY(0px); box-shadow: 0 4px 6px rgba(0,0,0,0.05), 0 10px 20px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.9); }
+    50% { transform: translateY(-2px); box-shadow: 0 8px 12px rgba(0,0,0,0.07), 0 16px 32px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9); }
 }
-
-@keyframes shimmer {
-    0% { background-position: -200% center; }
-    100% { background-position: 200% center; }
-}
-
 @keyframes pulse-glow {
     0%, 100% { box-shadow: 0 0 0 0 rgba(14,165,233,0.15); }
     50% { box-shadow: 0 0 20px 4px rgba(14,165,233,0.08); }
 }
-
-/* White cards — 3D floating */
-div[style*="background:#ffffff"],
-div[style*="background: #ffffff"] {
-    animation: card-float 4s ease-in-out infinite !important;
-    border: 1px solid rgba(226,232,240,0.8) !important;
-    backdrop-filter: blur(8px) !important;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-    background: linear-gradient(145deg, #ffffff, #f8fafc) !important;
+@keyframes emoji-float {
+    0%, 100% { transform: perspective(200px) rotateX(5deg) translateY(0px); filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3)); }
+    50% { transform: perspective(200px) rotateX(5deg) translateY(-8px); filter: drop-shadow(0 16px 24px rgba(0,0,0,0.4)); }
+}
+@keyframes float-btn {
+    0%, 100% { transform: translateY(0px); box-shadow: 0 4px 8px rgba(14,165,233,0.25), 0 8px 16px rgba(14,165,233,0.15), inset 0 1px 0 rgba(255,255,255,0.4); }
+    50% { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(14,165,233,0.3), 0 16px 32px rgba(14,165,233,0.2), inset 0 1px 0 rgba(255,255,255,0.4); }
 }
 
-div[style*="background:#ffffff"]:hover,
-div[style*="background: #ffffff"]:hover {
-    transform: translateY(-6px) scale(1.01) !important;
-    box-shadow:
-        0 16px 32px rgba(0,0,0,0.12),
-        0 32px 64px rgba(14,165,233,0.08),
-        inset 0 1px 0 rgba(255,255,255,1) !important;
-    animation: none !important;
-    border-color: rgba(14,165,233,0.2) !important;
-}
-
-/* Blue state card — glow pulse */
-div[style*="0c4a6e"],
-div[style*="0369a1"] {
-    animation: pulse-glow 3s ease-in-out infinite !important;
-    border: 1px solid rgba(56,189,248,0.3) !important;
-    transition: all 0.3s ease !important;
-}
-
-div[style*="0c4a6e"]:hover,
-div[style*="0369a1"]:hover {
-    transform: translateY(-4px) !important;
-    animation: none !important;
-    box-shadow: 0 20px 40px rgba(3,105,161,0.35) !important;
-}
-
-/* Stat cards top colored */
-div[style*="position:relative;overflow:hidden"] {
-    animation: card-float 4s ease-in-out infinite !important;
-    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-div[style*="position:relative;overflow:hidden"]:hover {
-    transform: translateY(-8px) scale(1.02) !important;
-    animation: none !important;
-}
-
-/* Metrics */
 [data-testid="stMetric"] {
-    animation: card-float 4s ease-in-out infinite !important;
     background: linear-gradient(145deg, #ffffff, #f8fafc) !important;
+    border: 1px solid #e2e8f0 !important; border-radius: 14px !important;
+    padding: 20px !important; box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
+    animation: card-float 4s ease-in-out infinite !important;
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
 }
-[data-testid="stMetric"]:hover {
+[data-testid="stMetric"]:hover { transform: translateY(-6px) scale(1.02) !important; animation: none !important; }
+[data-testid="stMetricLabel"] { color: #64748b !important; font-size: 12px !important; font-weight: 700 !important; text-transform: uppercase !important; letter-spacing: 0.08em !important; }
+[data-testid="stMetricValue"] { color: #0ea5e9 !important; font-size: 30px !important; font-weight: 800 !important; }
+
+.stButton > button {
+    background: linear-gradient(135deg, #7dd3fc, #38bdf8, #0ea5e9) !important;
+    color: #0c4a6e !important; border: none !important; border-radius: 14px !important;
+    font-size: 15px !important; font-weight: 700 !important; padding: 12px 24px !important;
+    width: 100% !important; letter-spacing: 0.02em !important;
+    box-shadow: 0 4px 8px rgba(14,165,233,0.25), 0 8px 16px rgba(14,165,233,0.15), inset 0 1px 0 rgba(255,255,255,0.4) !important;
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+    animation: float-btn 3s ease-in-out infinite !important;
+}
+.stButton > button:hover {
     transform: translateY(-6px) scale(1.02) !important;
-    animation: none !important;
+    box-shadow: 0 12px 24px rgba(14,165,233,0.35), 0 24px 48px rgba(14,165,233,0.2), inset 0 1px 0 rgba(255,255,255,0.5) !important;
+    animation: none !important; color: #082f49 !important;
+}
+.stButton > button:active { transform: translateY(-2px) scale(0.99) !important; }
+
+[data-testid="stFileUploader"] {
+    background: #ffffff !important; border: 2px dashed #bfdbfe !important;
+    border-radius: 14px !important; padding: 20px !important;
 }
 
-/* TEXT */
-/* Main content text — dark */
-.main p { color: #334155 !important; }
-.main label { color: #334155 !important; }
+.stSuccess { background: rgba(16,185,129,0.08) !important; border: 1px solid rgba(16,185,129,0.25) !important; border-radius: 10px !important; }
+.stWarning { background: rgba(245,158,11,0.08) !important; border: 1px solid rgba(245,158,11,0.25) !important; border-radius: 10px !important; }
+.stInfo { background: rgba(14,165,233,0.08) !important; border: 1px solid rgba(14,165,233,0.25) !important; border-radius: 10px !important; }
+.stError { background: rgba(239,68,68,0.08) !important; border: 1px solid rgba(239,68,68,0.25) !important; border-radius: 10px !important; }
 
-/* Plotly chart text — force dark */
-.js-plotly-plot text { fill: #1e293b !important; }
-.js-plotly-plot .gtitle { fill: #0f172a !important; }
-.js-plotly-plot .xtick text { fill: #334155 !important; }
-.js-plotly-plot .ytick text { fill: #334155 !important; }
-.js-plotly-plot .legendtext { fill: #334155 !important; }
-.js-plotly-plot .g-gtitle text { fill: #0f172a !important; }
-.js-plotly-plot .xaxislayer-above text { fill: #334155 !important; }
-.js-plotly-plot .yaxislayer-above text { fill: #334155 !important; }
+[data-testid="stDataFrame"] { border-radius: 12px !important; border: 1px solid #e2e8f0 !important; }
+.stCaption p { color: #64748b !important; font-size: 14px !important; }
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: #f0f4f8; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
 
 h1 { color: #0f172a !important; font-size: 26px !important; font-weight: 800 !important; }
 h2 { color: #0f172a !important; font-size: 20px !important; font-weight: 700 !important; }
 h3 { color: #1e293b !important; font-size: 17px !important; font-weight: 600 !important; }
+.main p { color: #334155 !important; }
+.main label { color: #334155 !important; }
 
-/* METRICS */
-[data-testid="stMetric"] {
-    background: #ffffff !important;
-    border: 1px solid #e2e8f0 !important;
-    border-radius: 14px !important;
-    padding: 20px !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.05) !important;
-}
-[data-testid="stMetricLabel"] {
-    color: #64748b !important;
-    font-size: 12px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.08em !important;
-}
-[data-testid="stMetricValue"] { color: #0ea5e9 !important; font-size: 30px !important; font-weight: 800 !important; }
-
-/* BUTTONS — Floating Creative Style */
-.stButton > button {
-    background: linear-gradient(135deg, #7dd3fc, #38bdf8, #0ea5e9) !important;
-    color: #0c4a6e !important;
-    border: none !important;
-    border-radius: 14px !important;
-    font-size: 15px !important;
-    font-weight: 700 !important;
-    padding: 12px 24px !important;
-    width: 100% !important;
-    letter-spacing: 0.02em !important;
-    box-shadow:
-        0 4px 8px rgba(14,165,233,0.25),
-        0 8px 16px rgba(14,165,233,0.15),
-        inset 0 1px 0 rgba(255,255,255,0.4) !important;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-    animation: float-btn 3s ease-in-out infinite !important;
-    position: relative !important;
-}
-
-@keyframes float-btn {
-    0%, 100% {
-        transform: translateY(0px);
-        box-shadow:
-            0 4px 8px rgba(14,165,233,0.25),
-            0 8px 16px rgba(14,165,233,0.15),
-            inset 0 1px 0 rgba(255,255,255,0.4);
-    }
-    50% {
-        transform: translateY(-4px);
-        box-shadow:
-            0 8px 16px rgba(14,165,233,0.3),
-            0 16px 32px rgba(14,165,233,0.2),
-            inset 0 1px 0 rgba(255,255,255,0.4);
-    }
-}
-
-.stButton > button:hover {
-    transform: translateY(-6px) scale(1.02) !important;
-    box-shadow:
-        0 12px 24px rgba(14,165,233,0.35),
-        0 24px 48px rgba(14,165,233,0.2),
-        inset 0 1px 0 rgba(255,255,255,0.5) !important;
-    animation: none !important;
-    color: #082f49 !important;
-}
-
-.stButton > button:active {
-    transform: translateY(-2px) scale(0.99) !important;
-    box-shadow:
-        0 4px 8px rgba(14,165,233,0.2),
-        inset 0 1px 0 rgba(255,255,255,0.3) !important;
-}
-
-/* FILE UPLOADER */
-[data-testid="stFileUploader"] {
-    background: #ffffff !important;
-    border: 2px dashed #bfdbfe !important;
-    border-radius: 14px !important;
-    padding: 20px !important;
-}
-
-/* ALERTS */
-.stSuccess { background: rgba(16,185,129,0.08) !important; border: 1px solid rgba(16,185,129,0.25) !important; border-radius: 10px !important; }
-.stSuccess p { color: #047857 !important; font-size: 15px !important; font-weight: 500 !important; }
-.stWarning { background: rgba(245,158,11,0.08) !important; border: 1px solid rgba(245,158,11,0.25) !important; border-radius: 10px !important; }
-.stWarning p { color: #b45309 !important; font-size: 15px !important; font-weight: 500 !important; }
-.stInfo { background: rgba(14,165,233,0.08) !important; border: 1px solid rgba(14,165,233,0.25) !important; border-radius: 10px !important; }
-.stInfo p { color: #0369a1 !important; font-size: 15px !important; }
-.stError { background: rgba(239,68,68,0.08) !important; border: 1px solid rgba(239,68,68,0.25) !important; border-radius: 10px !important; }
-.stError p { color: #dc2626 !important; font-size: 15px !important; }
-
-/* DATAFRAME */
-[data-testid="stDataFrame"] { border-radius: 12px !important; border: 1px solid #e2e8f0 !important; }
-
-/* CAPTION */
-.stCaption p { color: #64748b !important; font-size: 14px !important; }
-
-/* SCROLLBAR */
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: #f0f4f8; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-/* Blue cards text white */
-div[style*="0c4a6e"] *, div[style*="0369a1"] *, div[style*="0284c7"] * {
-    color: #ffffff !important;
-}
-div[style*="linear-gradient(145deg,#0c4a6e"] p,
-div[style*="linear-gradient(145deg,#0c4a6e"] span,
-div[style*="linear-gradient(145deg,#0c4a6e"] div {
-    color: #ffffff !important;
-}
-/* Force white text in all blue/dark gradient cards */
-div[style*="0c4a6e"] div,
-div[style*="0c4a6e"] span,
-div[style*="0369a1"] div,
-div[style*="0369a1"] span,
-div[style*="0284c7"] div,
-div[style*="0284c7"] span {
-    color: #ffffff !important;
-}
-/* NUCLEAR WHITE TEXT FIX */
 [style*="0c4a6e"] { color: white !important; }
 [style*="0369a1"] { color: white !important; }
 [style*="0284c7"] { color: white !important; }
 [style*="0c4a6e"] * { color: white !important; }
 [style*="0369a1"] * { color: white !important; }
 [style*="0284c7"] * { color: white !important; }
-@keyframes emoji-float {
-    0%, 100% {
-        transform: perspective(200px) rotateX(5deg) translateY(0px);
-        filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
-    }
-    50% {
-        transform: perspective(200px) rotateX(5deg) translateY(-8px);
-        filter: drop-shadow(0 16px 24px rgba(0,0,0,0.4));
-    }
-}
-
 </style>
 """, unsafe_allow_html=True)
 
@@ -396,73 +164,6 @@ EMOJI_MAP = {
     "Happy":"😊","Sad":"😢","Angry":"😠",
     "Neutral":"😐","Fear":"😨","Surprise":"😲","Disgust":"🤢"
 }
-
-# WebRTC Config
-RTC_CONFIG = RTCConfiguration({
-    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-})
-
-# Video Processor
-class MoodGuardProcessor(VideoProcessorBase):
-    def __init__(self):
-        self.emotion      = "Neutral"
-        self.confidence   = 0.0
-        self.focus_score  = 50
-        self.focus_state  = "Moderate"
-        self.state_label  = "Waiting..."
-        self.all_scores   = {}
-        self.blinks       = 0
-        self.alert        = False
-        self.tip          = ""
-        self._fd          = None
-
-    def _get_fd(self):
-        if self._fd is None:
-            try:
-                self._fd = FocusDetector()
-            except Exception:
-                pass
-        return self._fd
-
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
-
-        try:
-            emo = detect_emotion(img)
-            self.emotion    = emo["emotion"]
-            self.confidence = emo["confidence"]
-            self.all_scores = emo.get("all_scores", {})
-        except Exception:
-            pass
-
-        try:
-            fd = self._get_fd()
-            if fd:
-                focus = fd.detect(img)
-                self.focus_score = focus["focus_score"]
-                self.focus_state = focus["state"]
-                self.blinks      = focus["blinks"]
-        except Exception:
-            pass
-
-        try:
-            state = analyze(self.emotion, self.focus_score)
-            self.state_label = state["state"]
-            self.alert       = state["alert"]
-            self.tip         = state["tip"]
-        except Exception:
-            pass
-
-        try:
-            if emo.get("face_box"):
-                x,y,w,h = emo["face_box"]
-                cv2.rectangle(img,(x,y),(x+w,y+h),(14,165,233),2)
-                cv2.putText(img,f"{self.emotion} {self.confidence:.0f}%",
-                           (x,y-10),cv2.FONT_HERSHEY_SIMPLEX,0.6,(14,165,233),2)
-        except Exception:
-            pass
-
-        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
 # ── SIDEBAR ───────────────────────────────────────────────────────
 with st.sidebar:
@@ -527,6 +228,7 @@ with st.sidebar:
         </div>
     </div>
     """, unsafe_allow_html=True)
+
 # ── HELPER FUNCTIONS ──────────────────────────────────────────────
 def section_header(title, subtitle=""):
     sub = f"<div style='font-size:14px;color:#64748b;margin-top:5px;'>{subtitle}</div>" if subtitle else ""
@@ -570,9 +272,9 @@ def emotion_bars_html(all_scores):
 
 def state_card_html(emotion, confidence, focus_score, focus_state, blinks, state_label):
     emoji = EMOJI_MAP.get(emotion, "😐")
-    if focus_score >= 61:   fc, fl = "#4ade80", "Focused"
-    elif focus_score >= 31: fc, fl = "#fbbf24", "Moderate"
-    else:                   fc, fl = "#93c5fd", "Distracted"
+    if focus_score >= 61:   fl = "Focused"
+    elif focus_score >= 31: fl = "Moderate"
+    else:                   fl = "Distracted"
     return f"""
     <div style='background:linear-gradient(145deg,#0c4a6e,#0369a1);
         border-radius:16px;padding:24px;margin-bottom:16px;
@@ -585,7 +287,8 @@ def state_card_html(emotion, confidence, focus_score, focus_state, blinks, state
             filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
             transform: perspective(200px) rotateX(5deg);
             display:inline-block;
-            animation: emoji-float 3s ease-in-out infinite;'>{emoji}</div>        <div style='font-size:26px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;'>
+            animation: emoji-float 3s ease-in-out infinite;'>{emoji}</div>
+        <div style='font-size:26px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;'>
             {emotion.upper()}
         </div>
         <div style='font-size:13px;color:#bae6fd;margin-top:6px;'>
@@ -617,9 +320,9 @@ def state_card_html(emotion, confidence, focus_score, focus_state, blinks, state
     </div>"""
 
 def focus_meter_html(score):
-    if score >= 61:   color, label, desc = "#059669", "Focused",    "Strong eye contact detected"
-    elif score >= 31: color, label, desc = "#d97706", "Moderate",   "Moderate attention level"
-    else:             color, label, desc = "#dc2626", "Distracted",  "Attention drifting"
+    if score >= 61:   color, label, desc = "#059669", "Focused",     "Strong eye contact detected"
+    elif score >= 31: color, label, desc = "#d97706", "Moderate",    "Moderate attention level"
+    else:             color, label, desc = "#dc2626", "Distracted",   "Attention drifting"
     return f"""
     <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;
         padding:20px 22px;margin-bottom:16px;box-shadow:0 2px 8px rgba(0,0,0,0.04);'>
@@ -656,14 +359,14 @@ CHART_LAYOUT = dict(
 )
 
 PAGE_INFO = {
-    "🏠  Dashboard":      ("🧠 Dashboard",      "Real-time emotion · focus · behavioral intelligence"),
-    "📷  Photo Analysis": ("📷 Photo Analysis", "Upload any photo for instant emotion detection"),
-    "🎥  Live Camera":    ("🎥 Live Camera",     "Dedicated real-time analysis view"),
-    "📊  Analytics":      ("📊 Analytics",       "Session charts, trends & emotion timeline"),
-    "✦   AI Insights":    ("✦ AI Insights",      "Google Gemini 1.5 Flash · Personalized advice"),
-    "🤖  Agent Log":      ("🤖 Agent Log",       "Smart recommendations & behavioral decisions"),
-    "📁  History":        ("📁 Session History", "All recorded sessions with CSV export"),
-    "   About":          (" About",            "MoodGuard 2.0 · AI Mental State Intelligence Platform"),
+    "🧠  Dashboard":      ("🧠 Dashboard",       "Real-time emotion · focus · behavioral intelligence"),
+    "📷  Photo Analysis": ("📷 Photo Analysis",  "Upload any photo for instant emotion detection"),
+    "🎥  Live Camera":    ("🎥 Live Camera",      "Dedicated real-time analysis view"),
+    "📊  Analytics":      ("📊 Analytics",        "Session charts, trends & emotion timeline"),
+    "✦   AI Insights":    ("✦ AI Insights",       "Google Gemini 1.5 Flash · Personalized advice"),
+    "🤖  Agent Log":      ("🤖 Agent Log",        "Smart recommendations & behavioral decisions"),
+    "📁  History":        ("📁 Session History",  "All recorded sessions with CSV export"),
+    "ℹ   About":          ("ℹ About",             "MoodGuard 2.0 · AI Mental State Intelligence Platform"),
 }
 title, subtitle = PAGE_INFO.get(page, ("MoodGuard 2.0", ""))
 section_header(title, subtitle)
@@ -673,7 +376,6 @@ section_header(title, subtitle)
 # ══════════════════════════════════════════════════════════════════
 if page == "🧠  Dashboard":
 
-    # Banner
     st.markdown("""
     <div style='background:linear-gradient(135deg,rgba(14,165,233,0.08),rgba(56,189,248,0.05));
         border:1px solid rgba(14,165,233,0.2);border-radius:12px;
@@ -685,14 +387,14 @@ if page == "🧠  Dashboard":
     </div>""", unsafe_allow_html=True)
 
     # 4 stat cards
-    c1,c2,c3,c4 = st.columns(4)
+    c1, c2, c3, c4 = st.columns(4)
     stats = [
-        (c1,"WELLNESS SCORE","72%","#0ea5e9","▲ +5%","vs last session"),
-        (c2,"STRESS LEVEL",  "18%","#f87171","▼ −3%","improving"),
-        (c3,"POSITIVE MOOD", "64%","#34d399","▲ +8%","this week"),
-        (c4,"DOMINANT MOOD", "😊",  "#fb923c","Happy","68% confidence"),
+        (c1, "WELLNESS SCORE", "72%",  "#0ea5e9", "▲ +5%", "vs last session"),
+        (c2, "STRESS LEVEL",   "18%",  "#f87171", "▼ −3%", "improving"),
+        (c3, "POSITIVE MOOD",  "64%",  "#34d399", "▲ +8%", "this week"),
+        (c4, "DOMINANT MOOD",  "😊",   "#fb923c", "Happy",  "68% confidence"),
     ]
-    for col,label,val,color,trend,sub in stats:
+    for col, label, val, color, trend, sub in stats:
         with col:
             st.markdown(f"""
             <div style='background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;
@@ -712,63 +414,18 @@ if page == "🧠  Dashboard":
     col_l, col_r = st.columns([3, 2])
 
     with col_l:
-        # Dashboard camera section
-          st.markdown(white_card(card_title_html("📷 Real-Time Snapshot Analysis")),
-           unsafe_allow_html=True)
+        st.markdown(white_card(card_title_html("📷 Real-Time Snapshot Analysis")), unsafe_allow_html=True)
+        dash_img = st.camera_input("Take a snapshot", key="dash_cam", label_visibility="collapsed")
 
-dash_img = st.camera_input("Take a snapshot", key="dash_cam",
-                            label_visibility="collapsed")
-
-if dash_img:
-    from PIL import Image
-    img_pil = Image.open(dash_img)
-    img_np  = np.array(img_pil)
-    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-    
-    emo   = detect_emotion(img_bgr)
-    focus = FocusDetector().detect(img_bgr)
-    state = analyze(emo["emotion"], focus["focus_score"])
-    
-    st.session_state.current_emotion     = emo["emotion"]
-    st.session_state.current_confidence  = emo["confidence"]
-    st.session_state.current_focus       = focus["focus_score"]
-    st.session_state.current_state       = state["state"]
-    st.session_state.current_all_scores  = emo.get("all_scores", {})
-    st.session_state.current_blinks      = focus["blinks"]
-    
-    log_entry(emo["emotion"], emo["confidence"],
-             focus["focus_score"], state["state"],
-             state["alert"], state["tip"])
-    
-    if state["alert"]:
-        st.warning(f"⚠️ {state['tip']}")
-
-        
-        frame_slot = st.empty()
-        if not st.session_state.camera_on:
-            frame_slot.markdown("""
-            <div style='background:#f8fafc;border:2px dashed #e2e8f0;border-radius:12px;
-                height:260px;display:flex;flex-direction:column;align-items:center;
-                justify-content:center;gap:12px;margin-top:12px;'>
-                <div style='font-size:44px;'>📷</div>
-                <div style='font-size:15px;font-weight:600;color:#94a3b8;'>
-                    Press Start Camera to begin
-                </div>
-            </div>""", unsafe_allow_html=True)
-
-        st.markdown(white_card(
-            card_title_html("Emotion Probabilities") +
-            "<div id='emo-area'></div>"
-        ), unsafe_allow_html=True)
         emo_slot = st.empty()
         emo_slot.markdown(
-            "<div style='color:#94a3b8;font-size:14px;padding:4px 0;'>Start camera to see live probabilities</div>",
+            "<div style='color:#94a3b8;font-size:14px;padding:4px 0;'>Take a snapshot to see live probabilities</div>",
             unsafe_allow_html=True
         )
 
     with col_r:
         state_slot = st.empty()
-        state_slot.markdown(state_card_html("Neutral",0,0,"—",0,"Waiting..."), unsafe_allow_html=True)
+        state_slot.markdown(state_card_html("Neutral", 0, 0, "—", 0, "Waiting..."), unsafe_allow_html=True)
         focus_slot = st.empty()
         focus_slot.markdown(focus_meter_html(0), unsafe_allow_html=True)
 
@@ -792,67 +449,51 @@ if dash_img:
 
         tip_slot = st.empty()
 
-    if st.session_state.camera_on:
-        fd       = FocusDetector()
-        cap      = cv2.VideoCapture(0)
-        last_log = time.time()
+    # Process snapshot if taken
+    if dash_img:
+        img_pil = Image.open(dash_img)
+        img_np  = np.array(img_pil)
+        img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
 
-        if not cap.isOpened():
-            st.error("❌ Webcam not found. ")
-            st.session_state.camera_on = False
+        emo   = detect_emotion(img_bgr)
+        focus = FocusDetector().detect(img_bgr)
+        state = analyze(emo["emotion"], focus["focus_score"])
+
+        st.session_state.current_emotion    = emo["emotion"]
+        st.session_state.current_confidence = emo["confidence"]
+        st.session_state.current_focus      = focus["focus_score"]
+        st.session_state.current_state      = state["state"]
+        st.session_state.current_all_scores = emo.get("all_scores", {})
+        st.session_state.current_blinks     = focus["blinks"]
+
+        log_entry(emo["emotion"], emo["confidence"],
+                  focus["focus_score"], state["state"],
+                  state["alert"], state["tip"])
+
+        state_slot.markdown(
+            state_card_html(emo["emotion"], emo["confidence"],
+                            focus["focus_score"], focus["state"],
+                            focus["blinks"], state["state"]),
+            unsafe_allow_html=True
+        )
+        focus_slot.markdown(focus_meter_html(focus["focus_score"]), unsafe_allow_html=True)
+
+        if emo.get("all_scores"):
+            emo_slot.markdown(
+                f"<div style='padding:4px 0;'>{emotion_bars_html(emo['all_scores'])}</div>",
+                unsafe_allow_html=True
+            )
+
+        if state["alert"]:
+            tip_slot.warning(f"⚠️ {state['tip']}")
+            if not st.session_state.agent_log or st.session_state.agent_log[-1].get("tip") != state["tip"]:
+                st.session_state.agent_log.append({
+                    "time":  time.strftime("%H:%M:%S"),
+                    "state": state["state"],
+                    "tip":   state["tip"]
+                })
         else:
-            while st.session_state.camera_on:
-                ret, frame = cap.read()
-                if not ret:
-                    break
-
-                emo   = detect_emotion(frame)
-                focus = fd.detect(frame)
-                state = analyze(emo["emotion"], focus["focus_score"])
-
-                if emo["face_box"]:
-                    x,y,w,h = emo["face_box"]
-                    cv2.rectangle(frame,(x,y),(x+w,y+h),(14,165,233),2)
-                    cv2.putText(frame,f"{emo['emotion']} {emo['confidence']:.0f}%",
-                               (x,y-10),cv2.FONT_HERSHEY_SIMPLEX,0.7,(14,165,233),2)
-                    cv2.putText(frame,f"Focus:{focus['focus_score']} {focus['state']}",
-                               (x,y+h+22),cv2.FONT_HERSHEY_SIMPLEX,0.6,(5,150,105),2)
-
-                frame_slot.image(cv2.cvtColor(frame,cv2.COLOR_BGR2RGB), use_column_width=True)
-                state_slot.markdown(
-                    state_card_html(emo["emotion"],emo["confidence"],
-                                   focus["focus_score"],focus["state"],
-                                   focus["blinks"],state["state"]),
-                    unsafe_allow_html=True
-                )
-                focus_slot.markdown(focus_meter_html(focus["focus_score"]), unsafe_allow_html=True)
-
-                if emo["all_scores"]:
-                    emo_slot.markdown(
-                        f"<div style='padding:4px 0;'>{emotion_bars_html(emo['all_scores'])}</div>",
-                        unsafe_allow_html=True
-                    )
-
-                if state["alert"]:
-                    tip_slot.warning(f"⚠️  {state['tip']}")
-                    if not st.session_state.agent_log or st.session_state.agent_log[-1]["tip"] != state["tip"]:
-                        st.session_state.agent_log.append({
-                            "time":  time.strftime("%H:%M:%S"),
-                            "state": state["state"],
-                            "tip":   state["tip"]
-                        })
-                else:
-                    tip_slot.success(f"💡  {state['tip']}")
-
-                if time.time()-last_log >= 5:
-                    log_entry(emo["emotion"],emo["confidence"],
-                             focus["focus_score"],state["state"],
-                             state["alert"],state["tip"])
-                    last_log = time.time()
-
-                time.sleep(0.04)
-
-            cap.release()
+            tip_slot.success(f"💡 {state['tip']}")
 
 # ══════════════════════════════════════════════════════════════════
 # PHOTO ANALYSIS
@@ -860,25 +501,24 @@ if dash_img:
 elif page == "📷  Photo Analysis":
     uploaded = st.file_uploader(
         "Upload a photo for instant emotion analysis",
-        type=["jpg","jpeg","png"]
+        type=["jpg", "jpeg", "png"]
     )
 
     if not uploaded:
-        empty_state_html("📷","No photo uploaded","Drop any JPG or PNG to analyze emotion instantly")
+        empty_state_html("📷", "No photo uploaded", "Drop any JPG or PNG to analyze emotion instantly")
     else:
         img    = Image.open(uploaded)
         frame  = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2BGR)
         result = detect_emotion(frame)
         bstate = analyze(result["emotion"], 50)
 
-        col1, col2 = st.columns([1,1])
+        col1, col2 = st.columns([1, 1])
         with col1:
             st.markdown(white_card(card_title_html("Uploaded Photo")), unsafe_allow_html=True)
             st.image(img, use_column_width=True)
 
         with col2:
             emoji = EMOJI_MAP.get(result["emotion"], "😐")
-            color = EMOTION_COLORS.get(result["emotion"], "#0ea5e9")
             st.markdown(f"""
             <div style='background:linear-gradient(145deg,#0c4a6e,#0369a1);
                 border-radius:16px;padding:28px;text-align:center;margin-bottom:16px;
@@ -903,7 +543,7 @@ elif page == "📷  Photo Analysis":
             </div>
             """, unsafe_allow_html=True)
 
-            if result["all_scores"]:
+            if result.get("all_scores"):
                 st.markdown(
                     white_card(card_title_html("Emotion Probabilities") + emotion_bars_html(result["all_scores"])),
                     unsafe_allow_html=True
@@ -913,50 +553,57 @@ elif page == "📷  Photo Analysis":
 # LIVE CAMERA
 # ══════════════════════════════════════════════════════════════════
 elif page == "🎥  Live Camera":
-    st.markdown("### 🎥 Live Camera Analysis")
-    
-    # Use camera input — cloud pe kaam karta hai
-    img_file = st.camera_input("📷 Start Camera")
-    
+    st.markdown("""
+    <div style='background:linear-gradient(135deg,rgba(14,165,233,0.08),rgba(56,189,248,0.05));
+        border:1px solid rgba(14,165,233,0.2);border-radius:12px;
+        padding:13px 20px;font-size:14px;color:#0369a1;margin-bottom:20px;font-weight:500;'>
+        📸 Click <strong>Take Photo</strong> below to capture and analyze your emotion in real-time.
+        Each snapshot is logged automatically.
+    </div>""", unsafe_allow_html=True)
+
     col_result, col_state = st.columns([3, 2])
-    
+
+    with col_result:
+        img_file = st.camera_input("📷 Capture Frame", label_visibility="collapsed")
+
     if img_file is not None:
-        # Image process karo
-        from PIL import Image
-        import io
-        
         img_pil  = Image.open(img_file)
         img_np   = np.array(img_pil)
         img_bgr  = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
-        
+
+        emo   = detect_emotion(img_bgr)
+        focus = FocusDetector().detect(img_bgr)
+        state = analyze(emo["emotion"], focus["focus_score"])
+
+        # Draw bounding box on image
+        img_draw = img_np.copy()
+        if emo.get("face_box"):
+            x, y, w, h = emo["face_box"]
+            cv2.rectangle(img_draw, (x, y), (x+w, y+h), (14, 165, 233), 2)
+            cv2.putText(img_draw,
+                        f"{emo['emotion']} {emo['confidence']:.0f}%",
+                        (x, y-10), cv2.FONT_HERSHEY_SIMPLEX,
+                        0.7, (14, 165, 233), 2)
+
         with col_result:
-            # Emotion detect karo
-            emo   = detect_emotion(img_bgr)
-            focus = FocusDetector().detect(img_bgr)
-            state = analyze(emo["emotion"], focus["focus_score"])
-            
-            # Draw on image
-            img_draw = img_np.copy()
-            if emo["face_box"]:
-                x, y, w, h = emo["face_box"]
-                cv2.rectangle(img_draw, (x,y), (x+w,y+h), (14,165,233), 2)
-                cv2.putText(img_draw,
-                           f"{emo['emotion']} {emo['confidence']:.0f}%",
-                           (x, y-10), cv2.FONT_HERSHEY_SIMPLEX,
-                           0.7, (14,165,233), 2)
-            
             st.image(img_draw, channels="RGB", use_column_width=True)
-            
-            # Log karo
-            log_entry(emo["emotion"], emo["confidence"],
-                     focus["focus_score"], state["state"],
-                     state["alert"], state["tip"])
-            
             if state["alert"]:
                 st.warning(f"⚠️ {state['tip']}")
-            elif state["tip"]:
+            elif state.get("tip"):
                 st.success(f"💡 {state['tip']}")
-        
+
+        log_entry(emo["emotion"], emo["confidence"],
+                  focus["focus_score"], state["state"],
+                  state["alert"], state["tip"])
+
+        if state["alert"]:
+            if not st.session_state.agent_log or st.session_state.agent_log[-1].get("tip") != state["tip"]:
+                st.session_state.agent_log.append({
+                    "time":  time.strftime("%H:%M:%S"),
+                    "state": state["state"],
+                    "tip":   state["tip"]
+                })
+
         with col_state:
             st.markdown(
                 state_card_html(
@@ -965,51 +612,52 @@ elif page == "🎥  Live Camera":
                     focus["blinks"], state["state"]
                 ), unsafe_allow_html=True
             )
-            st.markdown(focus_meter_html(focus["focus_score"]),
-                       unsafe_allow_html=True)
-            
-            if emo["all_scores"]:
+            st.markdown(focus_meter_html(focus["focus_score"]), unsafe_allow_html=True)
+
+            if emo.get("all_scores"):
                 st.markdown(
                     white_card(card_title_html("Emotion Probabilities") +
-                              emotion_bars_html(emo["all_scores"])),
+                               emotion_bars_html(emo["all_scores"])),
                     unsafe_allow_html=True
                 )
     else:
-        col_result.markdown("""
-        <div style='text-align:center;padding:60px 20px;
-            background:#f8fafc;border-radius:16px;border:2px dashed #e2e8f0;'>
-            <div style='font-size:48px;margin-bottom:16px;'>📷</div>
-            <div style='font-size:16px;color:#64748b;font-weight:500;'>
-                Click "Take Photo" to analyze your emotion and focus
+        with col_result:
+            st.markdown("""
+            <div style='text-align:center;padding:60px 20px;
+                background:#f8fafc;border-radius:16px;border:2px dashed #e2e8f0;'>
+                <div style='font-size:48px;margin-bottom:16px;'>📷</div>
+                <div style='font-size:16px;color:#64748b;font-weight:500;'>
+                    Click "Take Photo" above to analyze your emotion and focus
+                </div>
+                <div style='font-size:13px;color:#94a3b8;margin-top:8px;'>
+                    Allow camera access when browser asks
+                </div>
             </div>
-            <div style='font-size:13px;color:#94a3b8;margin-top:8px;'>
-                Allow camera access when browser asks
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
+
 # ══════════════════════════════════════════════════════════════════
 # ANALYTICS
 # ══════════════════════════════════════════════════════════════════
 elif page == "📊  Analytics":
     df = read_log()
     if df.empty:
-        empty_state_html("📊","No session data yet","Run a live session from Dashboard or Live Camera first")
+        empty_state_html("📊", "No session data yet", "Run a live session from Dashboard or Live Camera first")
     else:
-        c1,c2,c3,c4 = st.columns(4)
-        c1.metric("Total Readings",  len(df))
-        c2.metric("Avg Focus",       f"{df['focus_score'].mean():.1f}")
-        c3.metric("Top Emotion",     df["emotion"].mode()[0])
-        c4.metric("Alerts Fired",    int(df["alert"].sum()))
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total Readings", len(df))
+        c2.metric("Avg Focus",      f"{df['focus_score'].mean():.1f}")
+        c3.metric("Top Emotion",    df["emotion"].mode()[0])
+        c4.metric("Alerts Fired",   int(df["alert"].sum()))
 
         st.markdown("<br>", unsafe_allow_html=True)
         col1, col2 = st.columns(2)
 
         with col1:
             emo_df = df["emotion"].value_counts().reset_index()
-            emo_df.columns = ["emotion","count"]
+            emo_df.columns = ["emotion", "count"]
             fig = px.pie(emo_df, names="emotion", values="count",
-                        title="Emotion Distribution", hole=0.4,
-                        color="emotion", color_discrete_map=EMOTION_COLORS)
+                         title="Emotion Distribution", hole=0.4,
+                         color="emotion", color_discrete_map=EMOTION_COLORS)
             fig.update_layout(**CHART_LAYOUT)
             fig.update_traces(textfont_size=13)
             st.plotly_chart(fig, use_container_width=True)
@@ -1017,14 +665,14 @@ elif page == "📊  Analytics":
         with col2:
             df["timestamp"] = pd.to_datetime(df["timestamp"])
             fig2 = px.line(df, x="timestamp", y="focus_score",
-                          title="Focus Score Timeline",
-                          color_discrete_sequence=["#0ea5e9"])
-            fig2.add_hrect(y0=61,y1=100,fillcolor="#059669",opacity=0.06,line_width=0)
-            fig2.add_hrect(y0=0, y1=30, fillcolor="#dc2626",opacity=0.06,line_width=0)
+                           title="Focus Score Timeline",
+                           color_discrete_sequence=["#0ea5e9"])
+            fig2.add_hrect(y0=61, y1=100, fillcolor="#059669", opacity=0.06, line_width=0)
+            fig2.add_hrect(y0=0,  y1=30,  fillcolor="#dc2626", opacity=0.06, line_width=0)
             fig2.update_layout(**CHART_LAYOUT)
             st.plotly_chart(fig2, use_container_width=True)
 
-       # Emotion Timeline Strip
+        # Emotion Timeline Strip
         HEIGHTS = {"Happy":100,"Neutral":65,"Sad":55,"Angry":80,"Fear":62,"Surprise":75,"Disgust":60}
         emotions_list = df["emotion"].tolist()[-60:]
         total = len(emotions_list)
@@ -1035,22 +683,19 @@ elif page == "📊  Analytics":
             op    = 0.4 if i < total - 6 else 1
             strip_bars += f"<div style='flex:1;height:{h}%;background:{color};opacity:{op};border-radius:3px 3px 0 0;' title='{e}'></div>"
 
-        strip_html = (
-            white_card(
-                card_title_html("Emotion Timeline — Last 60 Readings") +
-                "<div style='display:flex;gap:3px;align-items:flex-end;height:60px;'>" +
-                strip_bars +
-                "</div>"
-            )
-        )
-        st.markdown(strip_html, unsafe_allow_html=True)
+        st.markdown(white_card(
+            card_title_html("Emotion Timeline — Last 60 Readings") +
+            "<div style='display:flex;gap:3px;align-items:flex-end;height:60px;'>" +
+            strip_bars +
+            "</div>"
+        ), unsafe_allow_html=True)
 
         state_df = df["state"].value_counts().reset_index()
-        state_df.columns = ["state","count"]
+        state_df.columns = ["state", "count"]
         fig3 = px.bar(state_df, x="state", y="count",
-                     title="Mental States Frequency",
-                     color="state",
-                     color_discrete_sequence=["#0ea5e9","#059669","#f87171","#fbbf24","#818cf8","#f472b6"])
+                      title="Mental States Frequency",
+                      color="state",
+                      color_discrete_sequence=["#0ea5e9","#059669","#f87171","#fbbf24","#818cf8","#f472b6"])
         fig3.update_layout(**CHART_LAYOUT, showlegend=False)
         st.plotly_chart(fig3, use_container_width=True)
 
@@ -1060,10 +705,10 @@ elif page == "📊  Analytics":
 elif page == "✦   AI Insights":
     df = read_log()
     if df.empty:
-        empty_state_html("✦","No session data yet","Run a live session first to generate AI insights")
+        empty_state_html("✦", "No session data yet", "Run a live session first to generate AI insights")
     else:
         summary = get_session_summary(df)
-        c1,c2,c3 = st.columns(3)
+        c1, c2, c3 = st.columns(3)
         c1.metric("Dominant State", summary["dominant_state"])
         c2.metric("Avg Focus",      f"{summary['avg_focus']}/100")
         c3.metric("Duration",       f"{summary['duration_min']} min")
@@ -1102,7 +747,7 @@ elif page == "✦   AI Insights":
                         <div style='font-size:15px;color:#1e293b;line-height:1.9;'>{insight}</div>
                     </div>""", unsafe_allow_html=True)
                 except Exception as e:
-                    st.error(f"Gemini Error: {str(e)[:200]}\n\nCheck .env mein GEMINI_API_KEY aur free tier quota.")
+                    st.error(f"Gemini Error: {str(e)[:200]}\n\nCheck .env for GEMINI_API_KEY and free tier quota.")
 
 # ══════════════════════════════════════════════════════════════════
 # AGENT LOG
@@ -1113,14 +758,14 @@ elif page == "🤖  Agent Log":
     with col1:
         rules_html = card_title_html("Agent Rules")
         rules = [
-            ("#f87171","rgba(248,113,113,0.1)","⚠","Stress Detected",    "emotion == Angry → breathing exercise"),
-            ("#fb923c","rgba(251,146,60,0.1)", "↓","Low Focus",          "focus < 30 → Pomodoro technique"),
-            ("#818cf8","rgba(129,140,248,0.1)","😢","Low Motivation",     "sad + focus < 30 → take a walk"),
-            ("#34d399","rgba(52,211,153,0.1)", "✓","Peak State",         "happy + focus > 70 → deep work"),
-            ("#0ea5e9","rgba(14,165,233,0.1)", "→","Steady Focus",       "neutral + focus > 60 → keep going"),
+            ("#f87171", "rgba(248,113,113,0.1)", "⚠",  "Stress Detected",  "emotion == Angry → breathing exercise"),
+            ("#fb923c", "rgba(251,146,60,0.1)",  "↓",   "Low Focus",        "focus < 30 → Pomodoro technique"),
+            ("#818cf8", "rgba(129,140,248,0.1)", "😢", "Low Motivation",   "sad + focus < 30 → take a walk"),
+            ("#34d399", "rgba(52,211,153,0.1)",  "✓",   "Peak State",       "happy + focus > 70 → deep work"),
+            ("#0ea5e9", "rgba(14,165,233,0.1)",  "→",   "Steady Focus",     "neutral + focus > 60 → keep going"),
         ]
         items_html = ""
-        for color,bg,icon,state_lbl,rule in rules:
+        for color, bg, icon, state_lbl, rule in rules:
             items_html += f"""
             <div style='display:flex;align-items:center;gap:12px;padding:13px 0;
                 border-bottom:1px solid #f1f5f9;'>
@@ -1157,10 +802,10 @@ elif page == "🤖  Agent Log":
     df = read_log()
     if not df.empty and df["alert"].sum() > 0:
         st.markdown("<br>", unsafe_allow_html=True)
-        c1,c2,c3 = st.columns(3)
+        c1, c2, c3 = st.columns(3)
         c1.metric("Total Alerts", int(df["alert"].sum()))
         c2.metric("Alert Rate",   f"{df['alert'].sum()/len(df)*100:.1f}%")
-        alerts_df = df[df["alert"]==True]
+        alerts_df = df[df["alert"] == True]
         c3.metric("Top Trigger",  alerts_df["state"].mode()[0] if not alerts_df.empty else "—")
 
 # ══════════════════════════════════════════════════════════════════
@@ -1169,23 +814,22 @@ elif page == "🤖  Agent Log":
 elif page == "📁  History":
     df = read_log()
     if df.empty:
-        empty_state_html("📁","No history yet","Run a live session to start recording data")
+        empty_state_html("📁", "No history yet", "Run a live session to start recording data")
     else:
-        c1,c2 = st.columns([3,1])
+        c1, c2 = st.columns([3, 1])
         with c1:
             st.markdown(f"<div style='font-size:15px;color:#334155;font-weight:500;'>{len(df)} total readings recorded</div>", unsafe_allow_html=True)
         with c2:
             st.download_button("⬇  Download CSV",
-                              df.to_csv(index=False).encode("utf-8"),
-                              "moodguard_sessions.csv","text/csv")
-        st.dataframe(df.sort_values("timestamp",ascending=False),
-                    use_container_width=True, height=500)
+                               df.to_csv(index=False).encode("utf-8"),
+                               "moodguard_sessions.csv", "text/csv")
+        st.dataframe(df.sort_values("timestamp", ascending=False),
+                     use_container_width=True, height=500)
 
 # ══════════════════════════════════════════════════════════════════
 # ABOUT
 # ══════════════════════════════════════════════════════════════════
 elif page == "ℹ   About":
-    # Hero
     st.markdown("""
     <div style='background:linear-gradient(145deg,#0c4a6e,#0369a1,#0284c7);
         border-radius:20px;padding:48px;text-align:center;margin-bottom:28px;
@@ -1194,8 +838,7 @@ elif page == "ℹ   About":
             background:radial-gradient(circle,rgba(56,189,248,0.3),transparent 70%);'></div>
         <div style='position:absolute;bottom:-60px;right:-60px;width:200px;height:200px;
             background:radial-gradient(circle,rgba(14,165,233,0.2),transparent 70%);'></div>
-        <div style='font-size:42px;font-weight:800;color:#ffffff;letter-spacing:-0.03em;
-            position:relative;z-index:1;'>
+        <div style='font-size:42px;font-weight:800;color:#ffffff;letter-spacing:-0.03em;position:relative;z-index:1;'>
             Mood<span style='color:#7dd3fc;'>Guard</span>
             <span style='color:rgba(255,255,255,0.35);font-weight:300;'> 2.0</span>
         </div>
@@ -1204,8 +847,7 @@ elif page == "ℹ   About":
             AI Mental State Intelligence Platform
         </div>
         <div style='font-size:15px;color:rgba(255,255,255,0.65);margin-top:18px;
-            max-width:540px;margin-left:auto;margin-right:auto;line-height:1.8;
-            position:relative;z-index:1;'>
+            max-width:540px;margin-left:auto;margin-right:auto;line-height:1.8;position:relative;z-index:1;'>
             A complete human state understanding system combining Computer Vision,
             Behavioral Intelligence, and Generative AI.
         </div>
@@ -1215,26 +857,23 @@ elif page == "ℹ   About":
     col1, col2 = st.columns(2)
 
     with col1:
-        # Developer card
         dev_html = card_title_html("Developer")
         dev_html += """
         <div style='font-size:24px;font-weight:800;color:#0369a1;margin-bottom:6px;'>Hamna Munir</div>
         <div style='font-size:14px;color:#64748b;'>AI/ML Engineer</div>
         <div style='font-size:14px;color:#64748b;margin-bottom:14px;'>Software Engineering Student</div>
         <div style='display:flex;gap:8px;flex-wrap:wrap;'>"""
-        for tag in ["AI/ML","Computer Vision","GenAI","Deep Learning"]:
+        for tag in ["AI/ML", "Computer Vision", "GenAI", "Deep Learning"]:
             dev_html += f"<span style='background:#eff6ff;color:#1d4ed8;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:600;'>{tag}</span>"
         dev_html += "</div>"
         st.markdown(white_card(dev_html), unsafe_allow_html=True)
 
-        # Tech Stack
         tech_html = card_title_html("Tech Stack")
-        for tech in ["Python 3.10","Streamlit","OpenCV","MediaPipe","ONNX Runtime",
-                     "Google Gemini 1.5","scikit-learn","Plotly","FER2013","RandomForest"]:
+        for tech in ["Python 3.10", "Streamlit", "OpenCV", "MediaPipe", "ONNX Runtime",
+                     "Google Gemini 1.5", "scikit-learn", "Plotly", "FER2013", "RandomForest"]:
             tech_html += f"<span style='display:inline-block;background:#f1f5f9;color:#334155;padding:6px 14px;border-radius:8px;font-size:13px;font-weight:500;margin:3px;'>{tech}</span>"
         st.markdown(white_card(tech_html), unsafe_allow_html=True)
 
-        # Architecture
         arch_html = card_title_html("System Architecture")
         arch_html += """
         <div style='font-size:13px;color:#475569;line-height:2.2;font-family:monospace;
@@ -1243,7 +882,8 @@ elif page == "ℹ   About":
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
             <span style='color:#059669;font-weight:600;'>Face Detection</span> (OpenCV)<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
-            <span style='color:#818cf8;font-weight:600;'>Emotion</span> (ONNX)&nbsp;&nbsp;&nbsp;<span style='color:#fb923c;font-weight:600;'>Focus</span> (RF)<br>
+            <span style='color:#818cf8;font-weight:600;'>Emotion</span> (ONNX)&nbsp;&nbsp;&nbsp;
+            <span style='color:#fb923c;font-weight:600;'>Focus</span> (RF)<br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
             <span style='color:#f472b6;font-weight:600;'>Behavioral Intelligence</span><br>
             &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
@@ -1254,14 +894,13 @@ elif page == "ℹ   About":
         st.markdown(white_card(arch_html), unsafe_allow_html=True)
 
     with col2:
-        # Features
         features_html = card_title_html("Features")
         for feat in [
             "Real-time emotion detection — 7 emotions",
             "Focus & attention scoring via eye tracking (0–100)",
             "Behavioral intelligence & mental state analysis",
             "Photo analysis — upload any image instantly",
-            "Dedicated live camera page",
+            "Dedicated live camera page with snapshot analysis",
             "AI insights via Google Gemini 1.5 Flash",
             "Smart agent with automatic recommendations",
             "Session analytics — charts & emotion timeline",
@@ -1275,7 +914,6 @@ elif page == "ℹ   About":
             </div>"""
         st.markdown(white_card(features_html), unsafe_allow_html=True)
 
-        # Models
         models_html = card_title_html("AI Models")
         models_html += """
         <div style='background:#f0f9ff;border:1px solid #bae6fd;border-radius:10px;
@@ -1300,10 +938,9 @@ elif page == "ℹ   About":
         </div>"""
         st.markdown(white_card(models_html), unsafe_allow_html=True)
 
-        # Version
         version_html = card_title_html("Version Info")
         version_html += "<div style='display:grid;grid-template-columns:1fr 1fr;gap:12px;'>"
-        for label, val in [("Version","2.0"),("Year","2026"),("Status","Active"),("License","MIT")]:
+        for label, val in [("Version", "2.0"), ("Year", "2026"), ("Status", "Active"), ("License", "MIT")]:
             version_html += f"""
             <div style='background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;'>
                 <div style='font-size:10px;color:#94a3b8;text-transform:uppercase;
