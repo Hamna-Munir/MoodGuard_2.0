@@ -712,19 +712,38 @@ if page == "🧠  Dashboard":
     col_l, col_r = st.columns([3, 2])
 
     with col_l:
-        st.markdown(white_card(
-            card_title_html("Real-Time Emotion Analysis") +
-            "<div id='cam-area'></div>"
-        ), unsafe_allow_html=True)
+        # Dashboard camera section
+st.markdown(white_card(card_title_html("📷 Real-Time Snapshot Analysis")),
+           unsafe_allow_html=True)
 
-        bc1, bc2 = st.columns(2)
-        with bc1:
-            if st.button("▶  Start Camera", key="start_d"):
-                st.session_state.camera_on = True
-        with bc2:
-            if st.button("⏹  Stop Camera", key="stop_d"):
-                st.session_state.camera_on = False
+dash_img = st.camera_input("Take a snapshot", key="dash_cam",
+                            label_visibility="collapsed")
 
+if dash_img:
+    from PIL import Image
+    img_pil = Image.open(dash_img)
+    img_np  = np.array(img_pil)
+    img_bgr = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+    
+    emo   = detect_emotion(img_bgr)
+    focus = FocusDetector().detect(img_bgr)
+    state = analyze(emo["emotion"], focus["focus_score"])
+    
+    st.session_state.current_emotion     = emo["emotion"]
+    st.session_state.current_confidence  = emo["confidence"]
+    st.session_state.current_focus       = focus["focus_score"]
+    st.session_state.current_state       = state["state"]
+    st.session_state.current_all_scores  = emo.get("all_scores", {})
+    st.session_state.current_blinks      = focus["blinks"]
+    
+    log_entry(emo["emotion"], emo["confidence"],
+             focus["focus_score"], state["state"],
+             state["alert"], state["tip"])
+    
+    if state["alert"]:
+        st.warning(f"⚠️ {state['tip']}")
+
+        
         frame_slot = st.empty()
         if not st.session_state.camera_on:
             frame_slot.markdown("""
@@ -894,69 +913,80 @@ elif page == "📷  Photo Analysis":
 # LIVE CAMERA
 # ══════════════════════════════════════════════════════════════════
 elif page == "🎥  Live Camera":
-    col_cam, col_side = st.columns([3,2])
-
-    with col_cam:
-        st.markdown(
-            white_card(card_title_html("Live Feed") +
-            "<div style='font-size:13px;color:#64748b;margin-bottom:12px;'>"
-            "Click START — camera will open in browser</div>"),
-            unsafe_allow_html=True
-        )
-
-        ctx = webrtc_streamer(
-            key="moodguard-live",
-            rtc_configuration=RTC_CONFIG,
-            video_processor_factory=MoodGuardProcessor,
-            media_stream_constraints={"video": True, "audio": False},
-            async_processing=True,
-        )
-
-    with col_side:
-        state2_slot = st.empty()
-        focus2_slot = st.empty()
-        emo2_slot   = st.empty()
-        tip2_slot   = st.empty()
-
-        state2_slot.markdown(
-            state_card_html("Neutral",0,0,"—",0,"Press START"),
-            unsafe_allow_html=True
-        )
-        focus2_slot.markdown(focus_meter_html(0), unsafe_allow_html=True)
-
-    # Live update loop
-    if ctx.video_processor:
-        last_log = time.time()
-        while True:
-            p = ctx.video_processor
-
-            state2_slot.markdown(
-                state_card_html(p.emotion, p.confidence,
-                               p.focus_score, p.focus_state,
-                               p.blinks, p.state_label),
-                unsafe_allow_html=True
+    st.markdown("### 🎥 Live Camera Analysis")
+    
+    # Use camera input — cloud pe kaam karta hai
+    img_file = st.camera_input("📷 Start Camera")
+    
+    col_result, col_state = st.columns([3, 2])
+    
+    if img_file is not None:
+        # Image process karo
+        from PIL import Image
+        import io
+        
+        img_pil  = Image.open(img_file)
+        img_np   = np.array(img_pil)
+        img_bgr  = cv2.cvtColor(img_np, cv2.COLOR_RGB2BGR)
+        
+        with col_result:
+            # Emotion detect karo
+            emo   = detect_emotion(img_bgr)
+            focus = FocusDetector().detect(img_bgr)
+            state = analyze(emo["emotion"], focus["focus_score"])
+            
+            # Draw on image
+            img_draw = img_np.copy()
+            if emo["face_box"]:
+                x, y, w, h = emo["face_box"]
+                cv2.rectangle(img_draw, (x,y), (x+w,y+h), (14,165,233), 2)
+                cv2.putText(img_draw,
+                           f"{emo['emotion']} {emo['confidence']:.0f}%",
+                           (x, y-10), cv2.FONT_HERSHEY_SIMPLEX,
+                           0.7, (14,165,233), 2)
+            
+            st.image(img_draw, channels="RGB", use_column_width=True)
+            
+            # Log karo
+            log_entry(emo["emotion"], emo["confidence"],
+                     focus["focus_score"], state["state"],
+                     state["alert"], state["tip"])
+            
+            if state["alert"]:
+                st.warning(f"⚠️ {state['tip']}")
+            elif state["tip"]:
+                st.success(f"💡 {state['tip']}")
+        
+        with col_state:
+            st.markdown(
+                state_card_html(
+                    emo["emotion"], emo["confidence"],
+                    focus["focus_score"], focus["state"],
+                    focus["blinks"], state["state"]
+                ), unsafe_allow_html=True
             )
-            focus2_slot.markdown(focus_meter_html(p.focus_score), unsafe_allow_html=True)
-
-            if p.all_scores:
-                emo2_slot.markdown(
+            st.markdown(focus_meter_html(focus["focus_score"]),
+                       unsafe_allow_html=True)
+            
+            if emo["all_scores"]:
+                st.markdown(
                     white_card(card_title_html("Emotion Probabilities") +
-                              emotion_bars_html(p.all_scores)),
+                              emotion_bars_html(emo["all_scores"])),
                     unsafe_allow_html=True
                 )
-
-            if p.alert:
-                tip2_slot.warning(f"⚠️  {p.tip}")
-            elif p.tip:
-                tip2_slot.success(f"💡  {p.tip}")
-
-            if time.time() - last_log >= 5 and p.emotion != "Neutral":
-                log_entry(p.emotion, p.confidence,
-                         p.focus_score, p.state_label,
-                         p.alert, p.tip)
-                last_log = time.time()
-
-            time.sleep(0.1)
+    else:
+        col_result.markdown("""
+        <div style='text-align:center;padding:60px 20px;
+            background:#f8fafc;border-radius:16px;border:2px dashed #e2e8f0;'>
+            <div style='font-size:48px;margin-bottom:16px;'>📷</div>
+            <div style='font-size:16px;color:#64748b;font-weight:500;'>
+                Click "Take Photo" to analyze your emotion and focus
+            </div>
+            <div style='font-size:13px;color:#94a3b8;margin-top:8px;'>
+                Allow camera access when browser asks
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 # ══════════════════════════════════════════════════════════════════
 # ANALYTICS
 # ══════════════════════════════════════════════════════════════════
