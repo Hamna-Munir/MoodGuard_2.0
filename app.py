@@ -713,7 +713,7 @@ if page == "🧠  Dashboard":
 
     with col_l:
         # Dashboard camera section
-st.markdown(white_card(card_title_html("📷 Real-Time Snapshot Analysis")),
+          st.markdown(white_card(card_title_html("📷 Real-Time Snapshot Analysis")),
            unsafe_allow_html=True)
 
 dash_img = st.camera_input("Take a snapshot", key="dash_cam",
